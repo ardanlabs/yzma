@@ -199,8 +199,12 @@ func InputChunkGetTokensText(chunk InputChunk) []llama.Token {
 		return nil
 	}
 	var tokensPtr *llama.Token
-	var nTokens uint32
-	inputChunkGetTokensTextFunc.Call(unsafe.Pointer(&tokensPtr), unsafe.Pointer(&chunk), unsafe.Pointer(&nTokens))
+	var nTokens uint64 // size_t is 64-bit on arm64
+
+	// For the size_t* output parameter, we need to pass the ADDRESS of nTokens
+	// as the argument value (not pass &nTokens as a container for the argument).
+	nTokensAddr := uintptr(unsafe.Pointer(&nTokens))
+	inputChunkGetTokensTextFunc.Call(unsafe.Pointer(&tokensPtr), unsafe.Pointer(&chunk), unsafe.Pointer(&nTokensAddr))
 
 	if tokensPtr == nil || nTokens == 0 {
 		return nil
